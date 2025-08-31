@@ -7,7 +7,7 @@ This API provides endpoints to fetch forex rates from the database.
 import logging
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Response
 from sqlalchemy.exc import SQLAlchemyError
 
 from api.config import settings
@@ -86,6 +86,11 @@ async def get_forex_rates(
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.get("/favicon.ico")
+async def favicon():
+    return Response(status_code=204)  # No Content
 
 
 # Used during development
