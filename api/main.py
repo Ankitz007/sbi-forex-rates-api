@@ -61,12 +61,16 @@ async def get_forex_rates(
                 return StandardResponse(
                     success=True,
                     data=[],
-                    message=f"No forex rates found{ticker_msg} on {date}",
+                    message=f"No forex rates found{ticker_msg} for {date}",
                 )
 
             result = [
                 ForexRateService.convert_to_response(rate, date) for rate in forex_rates
             ]
+
+            # If a ticker was requested, return a single object in `data`, else return the list
+            if ticker:
+                return StandardResponse(success=True, data=result[0])
 
             return StandardResponse(success=True, data=result)
 
