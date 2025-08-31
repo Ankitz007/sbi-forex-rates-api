@@ -7,13 +7,14 @@ This API provides endpoints to fetch forex rates from the database.
 import logging
 from typing import List, Optional
 
-from config import settings
-from database import SessionLocal
 from fastapi import FastAPI, HTTPException, Query
-from schemas import ForexRateResponse
-from services import ForexRateService
 from sqlalchemy.exc import SQLAlchemyError
-from utils import DateValidator
+
+from api.config import settings
+from api.database import SessionLocal
+from api.schemas import ForexRateResponse
+from api.services import ForexRateService
+from api.utils import DateValidator
 
 # Configure logging
 logging.basicConfig(level=getattr(logging, settings.LOG_LEVEL))

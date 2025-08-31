@@ -5,9 +5,10 @@ Service layer for business logic.
 from datetime import datetime
 from typing import List, Optional
 
-from models import ForexRate
-from schemas import ForexRateResponse
 from sqlalchemy.orm import Session
+
+from api.models import ForexRate
+from api.schemas import ForexRateResponse
 
 
 class ForexRateService:
