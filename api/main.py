@@ -5,14 +5,14 @@ This API provides endpoints to fetch forex rates from the database.
 """
 
 import logging
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
 from sqlalchemy.exc import SQLAlchemyError
 
 from api.config import settings
 from api.database import SessionLocal
-from api.schemas import ForexRateResponse
+from api.schemas import StandardResponse
 from api.services import ForexRateService
 from api.utils import DateValidator
 
@@ -28,7 +28,7 @@ app = FastAPI(
 )
 
 
-@app.get("/", response_model=List[ForexRateResponse])
+@app.get("/", response_model=StandardResponse)
 async def get_forex_rates(
     date: str = Query(..., description="Date in DD-MM-YYYY format"),
     ticker: Optional[str] = Query(None, description="Currency ticker (e.g., USD, EUR)"),
@@ -54,27 +54,21 @@ async def get_forex_rates(
         db = SessionLocal()
 
         try:
-            # Get forex rates using service
             forex_rates = ForexRateService.get_rates_by_date(db, validated_date, ticker)
 
-            # Check if any data found
             if not forex_rates:
-                if ticker:
-                    raise HTTPException(
-                        status_code=404,
-                        detail=f"No forex rates found for {ticker} on {date}",
-                    )
-                else:
-                    raise HTTPException(
-                        status_code=404, detail=f"No forex rates found for {date}"
-                    )
+                ticker_msg = f" for {ticker}" if ticker else ""
+                return StandardResponse(
+                    success=True,
+                    data=[],
+                    message=f"No forex rates found{ticker_msg} on {date}",
+                )
 
-            # Convert to response format
             result = [
                 ForexRateService.convert_to_response(rate, date) for rate in forex_rates
             ]
 
-            return result
+            return StandardResponse(success=True, data=result)
 
         except SQLAlchemyError as e:
             logger.error(f"Database error: {e}")

@@ -2,6 +2,8 @@
 Pydantic schemas for API request/response models.
 """
 
+from typing import Any, Optional
+
 from pydantic import BaseModel
 
 
@@ -27,3 +29,11 @@ class ErrorResponse(BaseModel):
     """Response model for errors."""
 
     detail: str
+
+
+class StandardResponse(BaseModel):
+    """Standard API response wrapper."""
+
+    success: bool
+    data: Any
+    message: Optional[str] = None
