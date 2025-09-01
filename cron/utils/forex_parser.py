@@ -1,18 +1,13 @@
 import argparse
 import datetime
-import logging
-import re
 from typing import List, Optional, Tuple
 
 import pdfplumber
-from db_utils import db_manager
+from services.database_service import DatabaseService
+from utils.date_parser import DateParser
+from utils.logger import LoggerFactory
 
-logger = logging.getLogger(__name__)
-
-
-def setup_logging() -> None:
-    """Configure basic logging."""
-    logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
+logger = LoggerFactory.get_logger(__name__)
 
 
 def extract_date_and_tables(pdf_path: str, max_pages: int = 2) -> Tuple[
@@ -117,21 +112,7 @@ def parse_pdf_date(line: str) -> Optional[datetime.date]:
 
     Returns a datetime.date if found and parsed, otherwise None.
     """
-    if not line:
-        return None
-
-    # Extract day, month, year using regex groups
-    m = re.search(r"(\d{2})[-/](\d{2})[-/](\d{4})", line)
-    if not m:
-        return None
-
-    try:
-        day, month, year = map(int, m.groups())
-        return datetime.date(year, month, day)
-    except ValueError:
-        # Handle invalid dates (e.g., 32-13-2023)
-        logger.debug("Failed to parse PDF date on line: %s", line)
-        return None
+    return DateParser.parse_pdf_date(line)
 
 
 # filename-based date extraction removed: PDF-extracted date is the source of truth
@@ -275,15 +256,21 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
-def import_forex_rates_from_pdf(path: str, max_pages: int) -> int:
-    setup_logging()
+def import_forex_rates_from_pdf(
+    path: str, max_pages: int, db_service: Optional[DatabaseService] = None
+) -> int:
+    LoggerFactory.setup_logging()
+
+    # Initialize database service if not provided
+    if db_service is None:
+        db_service = DatabaseService()
 
     # Connect to database
-    if not db_manager.connect():
+    if not db_service.connect():
         logger.error("Failed to connect to database")
         return 1
 
-    if not db_manager.test_connection():
+    if not db_service.test_connection():
         logger.error("Database connection test failed")
         return 1
 
@@ -295,7 +282,7 @@ def import_forex_rates_from_pdf(path: str, max_pages: int) -> int:
 
     # Insert records into database
     if records:
-        if db_manager.insert_forex_records(records):
+        if db_service.insert_forex_records(records):
             logger.info(f"Successfully processed {len(records)} forex rate records")
             return 0
         else:

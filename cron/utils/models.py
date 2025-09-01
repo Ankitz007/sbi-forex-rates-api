@@ -1,8 +1,8 @@
 """
-SQLAlchemy models for the SBI FX Rates project.
+Models for the forex rates database.
 """
 
-from constants import FOREX_RATES_TABLE, TransactionCategory
+from config.settings import TransactionCategory, db_config
 from sqlalchemy import Column, Date
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy import Index, Integer, Numeric, String, UniqueConstraint
@@ -14,7 +14,7 @@ Base = declarative_base()
 class ForexRate(Base):
     """SQLAlchemy model for forex rates table."""
 
-    __tablename__ = FOREX_RATES_TABLE
+    __tablename__ = db_config.table_name
     # Unique constraint plus an index on date for faster lookups by date
     __table_args__ = (
         UniqueConstraint("ticker", "date", "category", name="uix_ticker_date_category"),

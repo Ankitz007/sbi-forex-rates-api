@@ -1,71 +1,98 @@
 """
-Database utilities for the SBI FX Rates project.
+Database service for handling forex rate data operations.
 """
 
-import logging
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import Dict, List, Optional
 
-from constants import DATABASE_URL, TransactionCategory
-from models import Base, ForexRate
+from config.settings import TransactionCategory, db_config
 from sqlalchemy import create_engine
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
+from utils.logger import LoggerFactory
+from utils.models import Base, ForexRate
 
-logger = logging.getLogger(__name__)
+logger = LoggerFactory.get_logger(__name__)
 
 
-class DatabaseManager:
-    """Manages database connections and operations."""
+class DatabaseService:
+    """Service for managing database connections and forex rate operations."""
 
-    def __init__(self, database_url: str = DATABASE_URL):
-        """Initialize database manager with connection URL."""
-        self.database_url = database_url
+    def __init__(self, database_url: Optional[str] = None):
+        """
+        Initialize database service with connection URL.
+
+        Args:
+            database_url: Database connection URL. Uses config default if None.
+        """
+        self.database_url = database_url or db_config.url
         self.engine = None
         self.SessionLocal = None
+        self._connected = False
 
     def connect(self) -> bool:
-        """Connect to the database and create tables if needed."""
+        """
+        Connect to the database and create tables if needed.
+
+        Returns:
+            True if connection successful, False otherwise
+        """
         try:
             self.engine = create_engine(self.database_url)
             self.SessionLocal = sessionmaker(bind=self.engine)
 
-            # Create tables if they don't exist using per-table create with
-            # checkfirst=True which issues CREATE TABLE IF NOT EXISTS when
-            # supported by the dialect.
+            # Create tables if they don't exist
             for table in Base.metadata.sorted_tables:
                 try:
                     table.create(self.engine, checkfirst=True)
                 except SQLAlchemyError as e:
-                    logger.error(f"Failed to create table {table.name}: {e}")
+                    logger.error("Failed to create table %s: %s", table.name, e)
                     return False
+
+            self._connected = True
+            logger.debug("Successfully connected to database")
             return True
 
         except SQLAlchemyError as e:
-            logger.error(f"Failed to connect to database: {e}")
+            logger.error("Failed to connect to database: %s", e)
             return False
 
     def get_session(self) -> Session:
-        """Get a new database session."""
-        if not self.SessionLocal:
+        """
+        Get a new database session.
+
+        Returns:
+            Database session
+
+        Raises:
+            RuntimeError: If database not connected
+        """
+        if not self._connected or not self.SessionLocal:
             raise RuntimeError("Database not connected. Call connect() first.")
         return self.SessionLocal()
 
     def insert_forex_records(self, records: List[Dict]) -> bool:
-        """Insert or update forex rate records in the database."""
+        """
+        Insert or update forex rate records in the database.
+
+        Args:
+            records: List of forex rate records as dictionaries
+
+        Returns:
+            True if successful, False otherwise
+        """
         if not records:
             logger.warning("No records to insert")
             return True
 
-        # Convert incoming records to DB-ready dicts and filter out invalid ones
+        # Convert and validate records
         values = []
         for record in records:
             forex_rate_data = self._record_to_dict(record)
-            if not forex_rate_data:
-                continue
-            values.append(forex_rate_data)
+            if forex_rate_data:
+                values.append(forex_rate_data)
 
         if not values:
             logger.warning("No valid records after conversion")
@@ -73,11 +100,10 @@ class DatabaseManager:
 
         session = self.get_session()
         try:
-            # Build a Postgres INSERT ... ON CONFLICT DO UPDATE statement
+            # Build PostgreSQL INSERT ... ON CONFLICT DO UPDATE statement
             insert_stmt = pg_insert(ForexRate.__table__).values(values)
 
-            # Columns to update on conflict: update all updatable columns except id and
-            # the conflict target columns (ticker, date, category).
+            # Define columns to update on conflict
             excluded = insert_stmt.excluded
             update_cols = {
                 "currency": excluded.currency,
@@ -98,18 +124,45 @@ class DatabaseManager:
 
             session.execute(stmt)
             session.commit()
-            logger.info("Upserted %d forex records", len(values))
+            logger.debug("Successfully upserted %d forex records", len(values))
             return True
 
         except SQLAlchemyError as e:
             session.rollback()
-            logger.error(f"Failed to upsert records: {e}")
+            logger.error("Failed to upsert records: %s", e)
             return False
         finally:
             session.close()
 
+    def test_connection(self) -> bool:
+        """
+        Test the database connection.
+
+        Returns:
+            True if connection test successful, False otherwise
+        """
+        try:
+            from sqlalchemy import text
+
+            session = self.get_session()
+            session.execute(text("SELECT 1"))
+            session.close()
+            logger.debug("Database connection test successful")
+            return True
+        except Exception as e:
+            logger.error("Database connection test failed: %s", e)
+            return False
+
     def _record_to_dict(self, record: Dict) -> Optional[Dict]:
-        """Convert a record dict to a dict suitable for ForexRate model."""
+        """
+        Convert a record dict to a dict suitable for ForexRate model.
+
+        Args:
+            record: Input record dictionary
+
+        Returns:
+            Converted record dictionary or None if conversion failed
+        """
         try:
             # Convert category text to enum
             category = TransactionCategory.from_pdf_text(record.get("category", ""))
@@ -138,33 +191,23 @@ class DatabaseManager:
             }
 
         except Exception as e:
-            logger.error(f"Failed to convert record to dict: {record}, error: {e}")
+            logger.error("Failed to convert record to dict: %s, error: %s", record, e)
             return None
 
     def _safe_decimal(self, value) -> Decimal:
-        """Safely convert string to Decimal, returning 0 for invalid values."""
+        """
+        Safely convert string to Decimal, returning 0 for invalid values.
+
+        Args:
+            value: Value to convert
+
+        Returns:
+            Decimal value or 0 if conversion fails
+        """
         if not value or value == "0":
             return Decimal("0")
         try:
             return Decimal(str(value).strip())
         except (InvalidOperation, ValueError):
-            logger.debug(f"Invalid decimal value: {value}, defaulting to 0")
+            logger.debug("Invalid decimal value: %s, defaulting to 0", value)
             return Decimal("0")
-
-    def test_connection(self) -> bool:
-        """Test the database connection."""
-        try:
-            from sqlalchemy import text
-
-            session = self.get_session()
-            # Simple query to test connection
-            session.execute(text("SELECT 1"))
-            session.close()
-            return True
-        except Exception as e:
-            logger.error(f"Database connection test failed: {e}")
-            return False
-
-
-# Global database manager instance
-db_manager = DatabaseManager()

@@ -29,7 +29,5 @@ venv/
 
 # Others
 misc/
-# TODO: add this file later
-ingest_all.py
 pdf_files/
 *.pdf
