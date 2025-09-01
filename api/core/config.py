@@ -15,7 +15,7 @@ class Settings:
 
     # Database
     DATABASE_URL: str = os.getenv(
-        "DATABASE_URL", "postgresql+psycopg://myuser:mypassword@localhost:5432/mydb"
+        "DATABASE_URL", "postgresql+psycopg://myuser:mypassword@localhost:5435/mydb"
     )
 
     # Logging

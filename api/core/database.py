@@ -5,7 +5,7 @@ Database utilities for the API.
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from api.config import settings
+from api.core.config import settings
 
 # Database setup
 engine = create_engine(settings.DATABASE_URL)
