@@ -13,10 +13,5 @@
   ],
   "env": {
     "PYTHONPATH": "."
-  },
-  "functions": {
-    "api/main.py": {
-      "excludeFiles": "cron/**"
-    }
   }
 }
