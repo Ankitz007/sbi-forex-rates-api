@@ -16,7 +16,7 @@
   },
   "functions": {
     "api/main.py": {
-      "excludeFiles": ["cron/**", ".github/**"]
+      "excludeFiles": "{cron/**,.github/**}"
     }
   }
 }
