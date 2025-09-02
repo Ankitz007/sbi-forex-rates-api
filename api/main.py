@@ -148,15 +148,6 @@ def check_dates_availability():
         return jsonify({"error": "Internal server error"}), 500
 
 
-# Vercel serverless function handler
-def handler(request):
-    """Serverless function handler for Vercel."""
-    with app.test_request_context(
-        request.url, method=request.method, data=request.get_data()
-    ):
-        return app.full_dispatch_request()
-
-
 # Used during development
 # if __name__ == "__main__":
 #     app.run(host=settings.HOST, port=settings.PORT, debug=True)
