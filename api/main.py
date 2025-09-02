@@ -6,7 +6,6 @@ This API provides endpoints to fetch forex rates from the database.
 
 import logging
 
-import psycopg
 from flask import Flask, jsonify, request
 
 from api.core import db_manager, settings
@@ -74,7 +73,8 @@ def get_forex_rates():
             response = StandardResponse(success=True, data=result)
             return jsonify(response.to_dict())
 
-        except psycopg.Error as e:
+        except Exception as e:
+            # Treat any DB driver errors as internal server errors
             logger.error(f"Database error: {e}")
             return jsonify({"error": "Database error occurred"}), 500
 
@@ -137,7 +137,7 @@ def check_dates_availability():
 
             return jsonify(response.to_dict())
 
-        except psycopg.Error as e:
+        except Exception as e:
             logger.error(f"Database error: {e}")
             return jsonify({"error": "Database error occurred"}), 500
 

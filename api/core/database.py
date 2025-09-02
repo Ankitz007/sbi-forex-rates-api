@@ -4,10 +4,10 @@ Database utilities for the API.
 
 import logging
 from contextlib import contextmanager
-from typing import Generator
+from typing import Any, Generator
+from urllib import parse as urlparse
 
-import psycopg
-from psycopg import sql
+import pg8000.dbapi as pg8000
 
 from api.core.config import settings
 from api.models import FOREX_RATES_TABLE
@@ -25,44 +25,73 @@ class DatabaseManager:
         self.connection_string = db_url
 
     @contextmanager
-    def get_connection(self) -> Generator[psycopg.Connection, None, None]:
+    def get_connection(self) -> Generator[Any, None, None]:
         """Get database connection context manager."""
         conn = None
         try:
-            conn = psycopg.connect(self.connection_string)
+            # Expect a URL like: postgresql://user:pass@host:port/dbname
+            parsed = urlparse.urlparse(self.connection_string)
+
+            user = parsed.username
+            password = parsed.password
+            host = parsed.hostname
+            port = parsed.port
+            database = parsed.path.lstrip("/") if parsed.path else None
+
+            # Validate required URL components to satisfy type checkers and provide clearer errors
+            if host is None:
+                raise ValueError("DATABASE_URL is missing a hostname")
+            if port is None:
+                raise ValueError("DATABASE_URL is missing a port")
+            if database is None:
+                raise ValueError("DATABASE_URL is missing a database name")
+
+            conn = pg8000.connect(
+                user=user, password=password, host=host, port=port, database=database
+            )
             yield conn
         finally:
             if conn:
                 conn.close()
 
     @contextmanager
-    def get_cursor(self) -> Generator[psycopg.Cursor, None, None]:
+    def get_cursor(self) -> Generator[Any, None, None]:
         """Get database cursor context manager."""
         with self.get_connection() as conn:
-            with conn.cursor() as cursor:
-                yield cursor
+            # pg8000 returns a standard DB-API connection with cursor()
+            cur = conn.cursor()
+            try:
+                yield cur
+            finally:
+                try:
+                    cur.close()
+                except Exception:
+                    pass
 
     def ensure_indexes(self) -> None:
         """Ensure database indexes exist (idempotent operation)."""
         logger = logging.getLogger(__name__)
 
+        # Table name is internal constant; build simple SQL strings.
         index_queries = [
-            sql.SQL(
-                "CREATE UNIQUE INDEX IF NOT EXISTS uix_ticker_date_category ON {} (ticker, date, category)"
-            ).format(sql.Identifier(FOREX_RATES_TABLE)),
-            sql.SQL(
-                "CREATE INDEX IF NOT EXISTS ix_forex_rates_date ON {} (date)"
-            ).format(sql.Identifier(FOREX_RATES_TABLE)),
+            f"CREATE UNIQUE INDEX IF NOT EXISTS uix_ticker_date_category ON {FOREX_RATES_TABLE} (ticker, date, category)",
+            f"CREATE INDEX IF NOT EXISTS ix_forex_rates_date ON {FOREX_RATES_TABLE} (date)",
         ]
 
         try:
             with self.get_connection() as conn:
-                with conn.cursor() as cur:
+                cur = conn.cursor()
+                try:
                     for query in index_queries:
                         try:
                             cur.execute(query)
                         except Exception as e:
                             logger.warning("Failed to create index: %s -- %s", query, e)
+                finally:
+                    try:
+                        cur.close()
+                    except Exception:
+                        pass
                 conn.commit()
         except Exception as e:
             logger.warning("ensure_indexes encountered an error: %s", e)
