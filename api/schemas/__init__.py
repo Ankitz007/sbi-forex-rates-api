@@ -1,13 +1,13 @@
 """
-Pydantic schemas for API request/response models.
+Response schemas for API endpoints.
 """
 
+from dataclasses import asdict, dataclass
 from typing import Any, List, Optional
 
-from pydantic import BaseModel
 
-
-class ForexRateResponse(BaseModel):
+@dataclass
+class ForexRateResponse:
     """Response model for forex rate data."""
 
     id: int
@@ -24,18 +24,41 @@ class ForexRateResponse(BaseModel):
     date: str
     category: str
 
+    def to_dict(self) -> dict:
+        """Convert to dictionary for JSON serialization."""
+        return asdict(self)
 
-class StandardResponse(BaseModel):
+
+@dataclass
+class StandardResponse:
     """Standard API response wrapper."""
 
     success: bool
     data: Any
     message: Optional[str] = None
 
+    def to_dict(self) -> dict:
+        """Convert to dictionary for JSON serialization."""
+        result = asdict(self)
+        # Handle nested objects that might have to_dict methods
+        if isinstance(self.data, list):
+            result["data"] = [
+                item.to_dict() if hasattr(item, "to_dict") else item
+                for item in self.data
+            ]
+        elif hasattr(self.data, "to_dict"):
+            result["data"] = self.data.to_dict()
+        return result
 
-class DateAvailabilityResponse(BaseModel):
+
+@dataclass
+class DateAvailabilityResponse:
     """Response model for date availability check."""
 
     success: bool
-    data: List[str]  # List of available dates in DD-MM-YYYY format
+    data: List[str]
     message: Optional[str] = None
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for JSON serialization."""
+        return asdict(self)

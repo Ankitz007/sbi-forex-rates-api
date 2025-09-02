@@ -15,7 +15,7 @@ class Settings:
 
     # Database
     DATABASE_URL: str = os.getenv(
-        "DATABASE_URL", "postgresql+psycopg://myuser:mypassword@localhost:5435/mydb"
+        "DATABASE_URL", "postgresql://myuser:mypassword@localhost:5432/mydb"
     )
 
     # Logging
@@ -28,7 +28,7 @@ class Settings:
 
     # Server
     HOST: str = os.getenv("HOST", "0.0.0.0")
-    PORT: int = int(os.getenv("PORT", "8000"))
+    PORT: int = int(os.getenv("PORT", "8080"))
 
 
 # Create settings instance

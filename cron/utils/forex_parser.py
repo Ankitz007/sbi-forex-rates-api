@@ -150,8 +150,7 @@ def clean_table(
     ]
 
     data_rows: List[List[str]] = []
-    # Skip first two rows if they appear to be header/meta rows
-    for row in raw_table[2:]:
+    for row in raw_table:
         if not _is_currency_row(row):
             logger.debug("Skipping non-currency row: %s", row)
             continue

@@ -2,14 +2,10 @@
 Database models for the SBI FX Rates API.
 """
 
+from dataclasses import dataclass
+from datetime import date
+from decimal import Decimal
 from enum import Enum
-
-from sqlalchemy import Column, Date
-from sqlalchemy import Enum as SQLEnum
-from sqlalchemy import Index, Integer, Numeric, String, UniqueConstraint
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
 
 # Constants
 FOREX_RATES_TABLE = "forex_rates"
@@ -24,39 +20,67 @@ class TransactionCategory(Enum):
     @classmethod
     def from_pdf_text(cls, text: str) -> "TransactionCategory":
         """Map PDF text to enum values."""
-        text_upper = text.upper()
-        if "BELOW" in text_upper:
+        return cls.TEN_TO_TWENTY if "BETWEEN" in text.upper() else cls.BELOW_10
+
+    @classmethod
+    def from_db_value(cls, val) -> "TransactionCategory":
+        """Create enum from database value with flexible parsing."""
+        if not val:
             return cls.BELOW_10
-        elif "BETWEEN" in text_upper:
-            return cls.TEN_TO_TWENTY
-        else:
-            # Default fallback
-            return cls.BELOW_10
+
+        if isinstance(val, cls):
+            return val
+
+        if isinstance(val, str):
+            # Try direct value lookup first
+            for member in cls:
+                if member.value == val or member.name == val.upper():
+                    return member
+
+            # Case-insensitive fallback
+            for member in cls:
+                if member.value.lower() == val.lower():
+                    return member
+
+        raise ValueError(f"'{val}' is not a valid {cls.__name__}")
 
 
-class ForexRate(Base):
-    """SQLAlchemy model for forex rates table."""
+@dataclass
+class ForexRate:
+    """Data model for forex rates."""
 
-    __tablename__ = FOREX_RATES_TABLE
-    # Unique constraint plus an index on date for faster lookups by date
-    __table_args__ = (
-        UniqueConstraint("ticker", "date", "category", name="uix_ticker_date_category"),
-        Index("ix_forex_rates_date", "date"),
-    )
+    id: int
+    currency: str
+    ticker: str
+    tt_buy: Decimal
+    tt_sell: Decimal
+    bill_buy: Decimal
+    bill_sell: Decimal
+    ftc_buy: Decimal
+    ftc_sell: Decimal
+    cn_buy: Decimal
+    cn_sell: Decimal
+    date: date
+    category: TransactionCategory
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    currency = Column(String, nullable=False)  # e.g., "United States Dollar"
-    ticker = Column(String, nullable=False)  # e.g., "USD"
-    tt_buy = Column(Numeric(10, 2), nullable=False, default=0)
-    tt_sell = Column(Numeric(10, 2), nullable=False, default=0)
-    bill_buy = Column(Numeric(10, 2), nullable=False, default=0)
-    bill_sell = Column(Numeric(10, 2), nullable=False, default=0)
-    ftc_buy = Column(Numeric(10, 2), nullable=False, default=0)
-    ftc_sell = Column(Numeric(10, 2), nullable=False, default=0)
-    cn_buy = Column(Numeric(10, 2), nullable=False, default=0)
-    cn_sell = Column(Numeric(10, 2), nullable=False, default=0)
-    date = Column(Date, nullable=False)  # Stored as a SQL Date
-    category = Column(SQLEnum(TransactionCategory), nullable=False)
+    @classmethod
+    def from_db_row(cls, row) -> "ForexRate":
+        """Create ForexRate instance from database row."""
+        return cls(
+            id=row[0],
+            currency=row[1],
+            ticker=row[2],
+            tt_buy=row[3],
+            tt_sell=row[4],
+            bill_buy=row[5],
+            bill_sell=row[6],
+            ftc_buy=row[7],
+            ftc_sell=row[8],
+            cn_buy=row[9],
+            cn_sell=row[10],
+            date=row[11],
+            category=TransactionCategory.from_db_value(row[12]),
+        )
 
-    def __repr__(self):
-        return f"<ForexRate(ticker='{self.ticker}', date='{self.date}', category='{self.category}')>"
+    def __repr__(self) -> str:
+        return f"ForexRate(ticker={self.ticker!r}, date={self.date!r}, category={self.category.value!r})"

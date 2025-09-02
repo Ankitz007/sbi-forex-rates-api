@@ -89,18 +89,10 @@ All endpoints return a standardized JSON envelope:
 
 ## 🛠️ Local development
 
-Use the repository root on PYTHONPATH so imports resolve the same way as Vercel (PYTHONPATH="."). Two quick ways to run locally:
-
-Run the module directly (uses the app's built-in uvicorn runner):
+Use the repository root on PYTHONPATH so imports resolve the same way as Vercel (PYTHONPATH="."). Run locally with:
 
 ```bash
 PYTHONPATH=. python -m api.main
-```
-
-Or run with uvicorn for auto-reload during development:
-
-```bash
-PYTHONPATH=. uvicorn api.main:app --reload
 ```
 
 Install dependencies:

@@ -3,7 +3,7 @@ name: Fetch and Process SBI Forex Rates
 on:
   schedule:
     # Run at 10:30 AM and 4:30 PM UTC daily (30 10,16 * * *)
-    - cron: '30 10,16 * * *'
+    - cron: "30 10,16 * * *"
   workflow_dispatch: # Allow manual triggering
 
 jobs:
@@ -14,39 +14,39 @@ jobs:
       image: python:3.13-slim
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Install system dependencies
-      run: |
-        apt-get update
-        apt-get install -y --no-install-recommends \
-          gcc \
-          g++ \
-          wget \
-          ca-certificates \
-          && rm -rf /var/lib/apt/lists/*
+      - name: Install system dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            gcc \
+            g++ \
+            wget \
+            ca-certificates \
+            && rm -rf /var/lib/apt/lists/*
 
-    - name: Set up Python environment
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Set up Python environment
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r cron/requirements.txt
 
-    - name: Set environment variables
-      env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      run: |
-        echo "Environment variables set"
+      - name: Set environment variables
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "Environment variables set"
 
-    - name: Fetch and process SBI forex rates
-      env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      run: |
-        cd cron
-        python fetch_and_fill_from_url.py
+      - name: Fetch and process SBI forex rates
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          cd cron
+          python fetch_and_fill_from_url.py
 
-    - name: Notify on failure
-      if: failure()
-      run: |
-        echo "SBI Forex rates processing failed at $(date)"
-        # You can add notification logic here (e.g., send email, Slack message, etc.)
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "SBI Forex rates processing failed at $(date)"
+          # You can add notification logic here (e.g., send email, Slack message, etc.)
