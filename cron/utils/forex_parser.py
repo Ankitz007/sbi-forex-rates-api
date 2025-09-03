@@ -1,3 +1,7 @@
+# # Below two lines are only for development
+# import sys, pathlib
+
+# sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 import argparse
 import datetime
 from typing import List, Optional, Tuple
@@ -256,40 +260,73 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
 
 
 def import_forex_rates_from_pdf(
-    path: str, max_pages: int, db_service: Optional[DatabaseService] = None
+    path: str,
+    max_pages: int,
+    db_service: Optional[DatabaseService] = None,
+    use_multiple_dbs: bool = True,
 ) -> int:
     LoggerFactory.setup_logging()
 
-    # Initialize database service if not provided
-    if db_service is None:
-        db_service = DatabaseService()
+    def _prepare_db_and_insert(
+        svc: DatabaseService, records: List[dict], db_name: str = "database"
+    ) -> bool:
+        """Connect, test and insert; return True on success."""
+        if not svc.connect():
+            logger.error(f"Failed to connect to {db_name}")
+            return False
+        if not svc.test_connection():
+            logger.error(f"{db_name} connection test failed")
+            return False
+        if svc.insert_forex_records(records):
+            logger.info(f"Successfully inserted {len(records)} records into {db_name}")
+            return True
+        logger.error(f"Failed to insert records into {db_name}")
+        return False
 
-    # Connect to database
-    if not db_service.connect():
-        logger.error("Failed to connect to database")
-        return 1
-
-    if not db_service.test_connection():
-        logger.error("Database connection test failed")
-        return 1
-
-    # Process PDF and get structured records
+    # Process PDF once
     records, exit_code = process_pdf(path, max_pages=max_pages)
-
     if exit_code != 0:
+        logger.error(f"Failed to process PDF: {path} exit_code: {exit_code}")
         return exit_code
-
-    # Insert records into database
-    if records:
-        if db_service.insert_forex_records(records):
-            logger.info(f"Successfully processed {len(records)} forex rate records")
-            return 0
-        else:
-            logger.error("Failed to insert records into database")
-            return 1
-    else:
-        logger.error("No records to process")
+    if not records:
+        logger.error(f"No records to process for PDF: {path}")
         return 3
+
+    # Single DB flow (used by ingest_all)
+    if not use_multiple_dbs:
+        if db_service is None:
+            db_service = DatabaseService()
+        ok = _prepare_db_and_insert(db_service, records, db_name="primary")
+        return 0 if ok else 1
+
+    # Multiple databases flow
+    from config.settings import db_config
+
+    db_urls = db_config.get_all_urls()
+    if not db_urls:
+        logger.error("No database URLs configured")
+        return 1
+
+    success_count = 0
+    total_dbs = len(db_urls)
+    for i, db_url in enumerate(db_urls):
+        db_name = ["primary", "fallback", "backup"][i] if i < 3 else f"db_{i}"
+        logger.info(f"Processing {db_name} database...")
+
+        try:
+            svc = DatabaseService(database_url=db_url)
+            if _prepare_db_and_insert(svc, records, db_name=db_name):
+                success_count += 1
+        except Exception as e:
+            logger.error(f"Error processing {db_name} database: {e}")
+            continue
+
+    if success_count > 0:
+        logger.info(f"Successfully processed {success_count}/{total_dbs} databases")
+        return 0
+    else:
+        logger.error("Failed to process any database")
+        return 1
 
 
 def main():
@@ -297,7 +334,7 @@ def main():
     import sys
 
     args = parse_args(sys.argv[1:])
-    return import_forex_rates_from_pdf(args.pdf, max_pages=2)
+    return import_forex_rates_from_pdf(args.pdf, max_pages=2, use_multiple_dbs=False)
 
 
 if __name__ == "__main__":

@@ -94,10 +94,10 @@ class ForexPDFDownloader:
             return 1
 
         try:
-            # Process the PDF using the existing parser
+            # Process the PDF using the existing parser with multiple databases
             logger.info("Processing PDF: %s", pdf_path)
             exit_code = import_forex_rates_from_pdf(
-                pdf_path, max_pages=pdf_config.max_pages
+                pdf_path, max_pages=pdf_config.max_pages, use_multiple_dbs=True
             )
 
             if exit_code == 0:

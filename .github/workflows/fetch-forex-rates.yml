@@ -2,7 +2,6 @@ name: Fetch and Process SBI Forex Rates
 
 on:
   schedule:
-    # Run at 10:30 AM and 4:30 PM UTC daily (30 10,16 * * *)
     - cron: "30 4,10,16,22 * * *"
   workflow_dispatch: # Allow manual triggering
 
@@ -24,6 +23,7 @@ jobs:
             gcc \
             g++ \
             wget \
+            curl \
             ca-certificates \
             && rm -rf /var/lib/apt/lists/*
 
@@ -32,15 +32,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r cron/requirements.txt
 
-      - name: Set environment variables
+      - name: Fetch DB backup TLS certificate
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_DB_CERT_URL: ${{ secrets.BACKUP_DB_CERT_URL }}
         run: |
-          echo "Environment variables set"
+          if [ -n "$BACKUP_DB_CERT_URL" ]; then
+            curl --create-dirs -o "$HOME/.postgresql/root.crt" "$BACKUP_DB_CERT_URL"
+          else
+            echo "No BACKUP_DB_CERT_URL provided, skipping cert fetch."
+          fi
 
       - name: Fetch and process SBI forex rates
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FALLBACK_DATABASE_URL: ${{ secrets.FALLBACK_DATABASE_URL }}
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          BACKUP_DB_CERT_URL: ${{ secrets.BACKUP_DB_CERT_URL }}
         run: |
           cd cron
           python fetch_and_fill_from_url.py

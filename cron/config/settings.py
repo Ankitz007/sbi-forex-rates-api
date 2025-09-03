@@ -39,7 +39,18 @@ class DatabaseConfig:
     url: str = os.getenv(
         "DATABASE_URL", "postgresql+psycopg://myuser:mypassword@localhost:5432/mydb"
     )
+    fallback_url: str = os.getenv("FALLBACK_DATABASE_URL", "")
+    backup_url: str = os.getenv("BACKUP_DATABASE_URL", "")
     table_name: str = "forex_rates"
+
+    def get_all_urls(self) -> List[str]:
+        """Get all valid database URLs."""
+        urls = [self.url]
+        if self.fallback_url:
+            urls.append(self.fallback_url)
+        if self.backup_url:
+            urls.append(self.backup_url)
+        return urls
 
 
 @dataclass

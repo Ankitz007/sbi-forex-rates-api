@@ -52,7 +52,10 @@ class PDFBatchProcessor:
             # Create a new database service for this worker
             worker_db_service = DatabaseService()
             exit_code = import_forex_rates_from_pdf(
-                path, max_pages=pdf_config.max_pages, db_service=worker_db_service
+                path,
+                max_pages=pdf_config.max_pages,
+                db_service=worker_db_service,
+                use_multiple_dbs=False,
             )
         except Exception:
             logger.exception("Exception while processing %s", path)

@@ -19,9 +19,16 @@ class DatabaseManager:
     def __init__(self):
         # Clean up DATABASE_URL from SQLAlchemy prefixes
         db_url = settings.DATABASE_URL
-        if db_url.startswith(("postgresql+psycopg://", "postgresql+psycopg2://")):
+        if db_url.startswith(
+            (
+                "postgresql+psycopg://",
+                "postgresql+psycopg2://",
+                "cockroachdb+psycopg://",
+            )
+        ):
             db_url = db_url.replace("postgresql+psycopg://", "postgresql://")
             db_url = db_url.replace("postgresql+psycopg2://", "postgresql://")
+            db_url = db_url.replace("cockroachdb+psycopg://", "postgresql://")
         self.connection_string = db_url
 
     @contextmanager
