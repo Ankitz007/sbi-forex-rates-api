@@ -308,6 +308,7 @@ def import_forex_rates_from_pdf(
         return 1
 
     success_count = 0
+    failure_count = 0
     total_dbs = len(db_urls)
     for i, db_url in enumerate(db_urls):
         db_name = ["primary", "fallback", "backup"][i] if i < 3 else f"db_{i}"
@@ -315,18 +316,24 @@ def import_forex_rates_from_pdf(
 
         try:
             svc = DatabaseService(database_url=db_url)
-            if _prepare_db_and_insert(svc, records, db_name=db_name):
+            ok = _prepare_db_and_insert(svc, records, db_name=db_name)
+            if ok:
                 success_count += 1
+            else:
+                failure_count += 1
+                logger.error(f"{db_name} reported failure during insert")
         except Exception as e:
+            failure_count += 1
             logger.error(f"Error processing {db_name} database: {e}")
             continue
 
-    if success_count > 0:
-        logger.info(f"Successfully processed {success_count}/{total_dbs} databases")
-        return 0
-    else:
-        logger.error("Failed to process any database")
+    logger.info(
+        f"Processed {success_count}/{total_dbs} successful, {failure_count} failed"
+    )
+    # Even a single failure should be treated as an overall error
+    if failure_count > 0:
         return 1
+    return 0
 
 
 def main():
