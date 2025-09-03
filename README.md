@@ -95,6 +95,7 @@ What is included
 
 - `cron/fetch_and_fill_from_url.py` — Downloads the latest SBI forex rates PDF (tries a primary and fallback URL), saves a temporary file, and processes it into the database.
 - `cron/ingest_all.py` — Walks the `pdf_files/` directory and processes all PDF files in parallel (configurable worker count).
+- `cron/check_db_sync.py` — Checks if all three databases (primary, fallback, backup) are synchronized by comparing record counts, date ranges, and sample data integrity.
 - `cron/requirements.txt` — Extra Python dependencies used by the cron scripts (PDF parsing, DB drivers, requests).
 
 Key configuration
@@ -118,6 +119,9 @@ PYTHONPATH=. python cron/fetch_and_fill_from_url.py
 
 # process all PDFs under the pdf_files directory
 PYTHONPATH=. python cron/ingest_all.py
+
+# check database synchronization status
+PYTHONPATH=. python cron/check_db_sync.py
 ```
 
 Notes & troubleshooting

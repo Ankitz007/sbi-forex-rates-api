@@ -54,6 +54,15 @@ jobs:
           cd cron
           python fetch_and_fill_from_url.py
 
+      - name: Check database synchronization
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FALLBACK_DATABASE_URL: ${{ secrets.FALLBACK_DATABASE_URL }}
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+        run: |
+          cd cron
+          python check_db_sync.py
+
       - name: Remove fetched DB backup TLS certificate
         if: always()
         run: |
