@@ -8,6 +8,7 @@ from typing import List, Optional, Tuple
 
 import pdfplumber
 from services.database_service import DatabaseService
+
 from utils.date_parser import DateParser
 from utils.logger import LoggerFactory
 
@@ -311,7 +312,7 @@ def import_forex_rates_from_pdf(
     failure_count = 0
     total_dbs = len(db_urls)
     for i, db_url in enumerate(db_urls):
-        db_name = ["primary", "fallback", "backup"][i] if i < 3 else f"db_{i}"
+        db_name = ["primary", "backup"][i] if i < 2 else f"db_{i}"
         logger.info(f"Processing {db_name} database...")
 
         try:

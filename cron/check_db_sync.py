@@ -2,7 +2,7 @@
 """
 Database synchronization checker for SBI Forex Rates API.
 
-This script checks if all three databases (primary, fallback, backup) are in sync
+This script checks if all three databases (primary, backup) are in sync
 by comparing record counts, latest dates, and sample data integrity.
 """
 
@@ -30,8 +30,6 @@ class DatabaseSyncChecker:
         """Get all configured database URLs."""
         configs = {"primary": db_config.url}
 
-        if db_config.fallback_url:
-            configs["fallback"] = db_config.fallback_url
         if db_config.backup_url:
             configs["backup"] = db_config.backup_url
 

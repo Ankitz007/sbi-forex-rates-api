@@ -47,7 +47,6 @@ jobs:
       - name: Fetch and process SBI forex rates
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          FALLBACK_DATABASE_URL: ${{ secrets.FALLBACK_DATABASE_URL }}
           BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
           BACKUP_DB_CERT_URL: ${{ secrets.BACKUP_DB_CERT_URL }}
         run: |
@@ -57,7 +56,6 @@ jobs:
       - name: Check database synchronization
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          FALLBACK_DATABASE_URL: ${{ secrets.FALLBACK_DATABASE_URL }}
           BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
         run: |
           cd cron

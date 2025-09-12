@@ -95,14 +95,13 @@ What is included
 
 - `cron/fetch_and_fill_from_url.py` — Downloads the latest SBI forex rates PDF (tries a primary and fallback URL), saves a temporary file, and processes it into the database.
 - `cron/ingest_all.py` — Walks the `pdf_files/` directory and processes all PDF files in parallel (configurable worker count).
-- `cron/check_db_sync.py` — Checks if all three databases (primary, fallback, backup) are synchronized by comparing record counts, date ranges, and sample data integrity.
+- `cron/check_db_sync.py` — Checks if all two databases (primary, backup) are synchronized by comparing record counts, date ranges, and sample data integrity.
 - `cron/requirements.txt` — Extra Python dependencies used by the cron scripts (PDF parsing, DB drivers, requests).
 
 Key configuration
 
 - The cron scripts load environment variables via `python-dotenv`. You can configure database URLs and other settings using a `.env` file or environment variables:
   - `DATABASE_URL` (primary DB connection)
-  - `FALLBACK_DATABASE_URL` (optional)
   - `BACKUP_DATABASE_URL` (optional)
   - Other runtime config values are defined in `cron/config/settings.py` (for example, `pdf_files_dir` and `num_workers`).
 
