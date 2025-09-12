@@ -2,7 +2,7 @@ name: Fetch and Process SBI Forex Rates
 
 on:
   schedule:
-    - cron: "30 4,10,16,22 * * *"
+    - cron: "30 0,6,12,18 * * *"
   workflow_dispatch: # Allow manual triggering
 
 jobs:
