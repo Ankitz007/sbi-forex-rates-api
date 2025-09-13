@@ -14,8 +14,8 @@ jobs:
         env:
           FOREX_API_HOST: ${{ secrets.FOREX_API_HOST }}
         run: |
-          # Get current date in YYYY-MM-DD format
-          CURRENT_DATE=$(date +%Y-%m-%d)
+          # Get current date in DD-MM-YYYY format
+          CURRENT_DATE=$(date +%d-%m-%Y)
 
           # Construct the API URL
           API_URL="${FOREX_API_HOST}/?date=${CURRENT_DATE}"
