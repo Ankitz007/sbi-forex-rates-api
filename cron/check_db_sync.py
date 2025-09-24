@@ -71,6 +71,7 @@ class DatabaseSyncChecker:
                         f"""
                         SELECT currency, ticker, date, tt_buy, tt_sell
                         FROM {db_config.table_name}
+                        WHERE category = 'TEN_TO_TWENTY'
                         ORDER BY date DESC, currency
                         LIMIT 10
                     """
