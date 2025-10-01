@@ -7,6 +7,7 @@ from typing import List, Optional, Tuple
 
 import pdfplumber
 from config.settings import pdf_config
+
 from utils.date_parser import DateParser
 from utils.logger import LoggerFactory
 

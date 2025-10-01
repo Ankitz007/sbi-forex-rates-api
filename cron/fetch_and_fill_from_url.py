@@ -3,6 +3,7 @@ from typing import Optional
 
 import requests
 from config.settings import pdf_config
+
 from utils.file_handler import FileHandler
 from utils.forex_parser import import_forex_rates_from_pdf
 from utils.logger import LoggerFactory

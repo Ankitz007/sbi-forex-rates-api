@@ -208,6 +208,37 @@ def table_to_records(
     return records
 
 
+def deduplicate_records(records: List[dict]) -> List[dict]:
+    """Remove duplicate records based on unique constraint fields (ticker, date, category).
+
+    Args:
+        records: List of record dictionaries
+
+    Returns:
+        List of deduplicated records
+    """
+    seen_keys = set()
+    deduplicated = []
+    duplicates_found = 0
+
+    for record in records:
+        # Create unique key from constraint fields
+        unique_key = (
+            record.get("ticker", "").strip().upper(),
+            record.get("date", ""),
+            record.get("category", ""),
+        )
+
+        if unique_key in seen_keys:
+            duplicates_found += 1
+            continue
+
+        seen_keys.add(unique_key)
+        deduplicated.append(record)
+
+    return deduplicated
+
+
 def process_pdf(path: str, max_pages: int = 2) -> Tuple[Optional[List[dict]], int]:
     """High-level processing: extract tables from PDF and return records.
 
@@ -245,7 +276,11 @@ def process_pdf(path: str, max_pages: int = 2) -> Tuple[Optional[List[dict]], in
 
     if not all_records:
         return [], 3
-    return all_records, 0
+
+    # Apply deduplication to prevent database constraint violations
+    deduplicated_records = deduplicate_records(all_records)
+
+    return deduplicated_records, 0
 
 
 def parse_args(argv: List[str]) -> argparse.Namespace:

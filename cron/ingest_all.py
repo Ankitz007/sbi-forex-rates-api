@@ -6,6 +6,7 @@ from typing import Optional, Tuple
 
 from config.settings import pdf_config, processing_config
 from services.database_service import DatabaseService
+
 from utils.file_handler import FileHandler
 from utils.forex_parser import import_forex_rates_from_pdf
 from utils.logger import LoggerFactory

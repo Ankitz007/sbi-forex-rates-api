@@ -11,6 +11,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
+
 from utils.logger import LoggerFactory
 from utils.models import Base, ForexRate
 
