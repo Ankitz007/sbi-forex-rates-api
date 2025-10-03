@@ -32,44 +32,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r cron/requirements.txt
 
-      - name: Fetch DB backup TLS certificate
-        env:
-          BACKUP_DB_CERT_URL: ${{ secrets.BACKUP_DB_CERT_URL }}
-        run: |
-          if [ -n "$BACKUP_DB_CERT_URL" ]; then
-            # Download cert to the expected libpq location and set restrictive perms
-            curl --create-dirs -o "$HOME/.postgresql/root.crt" "$BACKUP_DB_CERT_URL"
-            chmod 600 "$HOME/.postgresql/root.crt" || true
-          else
-            echo "No BACKUP_DB_CERT_URL provided, skipping cert fetch."
-          fi
-
       - name: Fetch and process SBI forex rates
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
-          BACKUP_DB_CERT_URL: ${{ secrets.BACKUP_DB_CERT_URL }}
         run: |
           cd cron
           python fetch_and_fill_from_url.py
-
-      - name: Check database synchronization
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
-        run: |
-          cd cron
-          python check_db_sync.py
-
-      - name: Remove fetched DB backup TLS certificate
-        if: always()
-        run: |
-          # Explicitly remove the certificate after use to avoid leaving secrets on the runner
-          if [ -f "$HOME/.postgresql/root.crt" ]; then
-            rm -f "$HOME/.postgresql/root.crt"
-          fi
-          # Remove the directory if empty
-          rmdir --ignore-fail-on-non-empty "$HOME/.postgresql" || true
 
       - name: Notify on failure
         if: failure()
